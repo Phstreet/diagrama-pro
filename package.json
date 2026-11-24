@@ -8,10 +8,12 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "build": "npm run typecheck && npm test && vite build",
+    "build": "npm run pwa:icons && npm run typecheck && npm test && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "pwa:icons": "node scripts/generate-icons.mjs",
+    "android:build": "npm run build && node scripts/android-build.mjs"
   },
   "dependencies": {
     "@xyflow/react": "^12.8.5",
@@ -22,7 +24,14 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "zustand": "^5.0.3",
-    "zod": "^3.24.2"
+    "zod": "^3.24.2",
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/core": "^7.4.3",
+    "@capacitor/filesystem": "^7.0.1",
+    "@capacitor/share": "^7.0.1",
+    "@capacitor/splash-screen": "^7.0.1",
+    "@capacitor/status-bar": "^7.0.1",
+    "idb": "^8.0.2"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",
@@ -42,6 +51,11 @@
     "eslint": "^9.19.0",
     "@eslint/js": "^9.19.0",
     "typescript-eslint": "^8.24.0",
-    "globals": "^15.14.0"
+    "globals": "^15.14.0",
+    "@capacitor/cli": "^7.4.3",
+    "@vite-pwa/assets-generator": "^0.2.6",
+    "fake-indexeddb": "^6.0.0",
+    "sharp": "^0.33.5",
+    "vite-plugin-pwa": "^0.21.1"
   }
 }

@@ -1,0 +1,2 @@
+import {test,expect} from '@playwright/test';
+test('aplicativo mantém edição offline após reload',async({page,context})=>{await page.goto('/');await page.waitForLoadState('networkidle');await context.setOffline(true);await page.reload();await expect(page.locator('.react-flow')).toBeVisible();await page.getByRole('button',{name:/Tópico/i}).click();await expect(page.locator('.react-flow__node')).toHaveCount(4);await page.reload();await expect(page.locator('.react-flow__node')).toHaveCount(4);});
