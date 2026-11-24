@@ -17,3 +17,5 @@ export function listDiagrams():SavedDiagram[]{try{const v=JSON.parse(localStorag
 export function upsertDiagram(doc:DiagramDocument):void {const list=listDiagrams().filter(d=>d.id!==doc.id);localStorage.setItem(LIST_KEY,JSON.stringify([{...doc,id:doc.id||crypto.randomUUID()},...list].slice(0,100)));}
 export function deleteDiagram(id:string):void {localStorage.setItem(LIST_KEY,JSON.stringify(listDiagrams().filter(d=>d.id!==id)));}
 export function activateDiagram(doc:DiagramDocument):void {localStorage.setItem(ACTIVE_KEY,JSON.stringify(doc));}
+
+export function renameDiagram(id:string,title:string):void { const next=listDiagrams().map(d=>d.id===id?{...d,title,updatedAt:new Date().toISOString()}:d); localStorage.setItem(LIST_KEY,JSON.stringify(next)); }
