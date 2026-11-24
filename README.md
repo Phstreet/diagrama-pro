@@ -1,47 +1,53 @@
 # Diagrama Pro
 
-MVP web para criação de mapas mentais e fluxogramas, com React 19, TypeScript, Vite, Tailwind CSS, React Flow, Zustand e dagre.
+Aplicação web para criar e editar mapas mentais e fluxogramas.
+
+## Stack
+
+- React 19 + TypeScript + Vite
+- React Flow para o canvas de diagramas
+- Zustand para estado global
+- Tailwind CSS e CSS próprio para a interface
 
 ## Requisitos
-- Node.js 20.19+ ou 22.12+
-- npm 10+
 
-## Instalação do zero
+Node.js 22.12+ e npm 10+.
+
+## Instalação
+
 ```bash
-# 1. Criar a pasta e entrar nela
-mkdir diagrama-pro && cd diagrama-pro
-
-# 2. Criar o projeto Vite (React + TypeScript)
-npm create vite@latest . -- --template react-ts
-
-# 3. Instalar dependências de execução
-npm install @xyflow/react zustand dagre html-to-image jspdf lucide-react
-
-# 4. Instalar dependências de desenvolvimento
-npm install -D tailwindcss postcss autoprefixer @types/dagre
-
-# 5. Inicializar Tailwind (os arquivos de configuração deste projeto já estão prontos)
-npx tailwindcss init -p
-
-# 6. Rodar
+npm install
 npm run dev
 ```
 
-> Para usar este pacote pronto, extraia o ZIP e execute `npm install` e `npm run dev`. Não execute novamente `create vite` sobre os arquivos extraídos.
+## Verificação
 
-## Build de produção
 ```bash
+npm run typecheck
 npm run build
 npm run preview
 ```
 
-## Recursos incluídos
-- Dois modos: mapa mental e fluxograma.
-- Templates prontos, nó de tópico, etapa e decisão.
-- Conexões por arraste, edição do título por duplo clique e propriedades na lateral.
-- Arrastar nós, recolher/expandir ramificações, zoom, pan, ajuste inicial à tela e minimapa.
-- Organização automática com dagre.
-- Histórico, atalhos, autosave local, importação e exportação PNG/SVG/PDF/JSON.
-- Temas claro e escuro.
+## Estrutura
 
-O autosave utiliza localStorage no navegador atual. Os diagramas não são sincronizados entre dispositivos.
+```text
+src/
+  app/          composição e aplicação
+  components/   interface e nós
+  hooks/        comportamento reutilizável
+  lib/          persistência e exportação
+  store/        estado global
+  types/        tipos compartilhados
+```
+
+## Recursos da versão 2
+
+- Canvas de mapa mental e fluxograma.
+- Criação, edição, conexão e remoção de nós.
+- Nós de processo e decisão.
+- Salvamento automático no navegador.
+- Importação e exportação de diagramas em JSON.
+- Exportação do canvas para PNG e SVG.
+- Zoom, minimapa e controles do React Flow.
+
+Os dados permanecem no navegador por meio do armazenamento local. Sincronização em nuvem e colaboração multiusuário não fazem parte desta versão.
