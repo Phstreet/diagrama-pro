@@ -1,4 +1,4 @@
-import { useMemo,useState } from 'react';
+import { useEffect,useMemo,useState } from 'react';
 import { X,Check,RotateCcw,Save,History,Database } from 'lucide-react';
 import { useDiagramStore } from '../store/useDiagramStore';
 import { diagramSchema } from '../lib/schema';
@@ -8,7 +8,7 @@ const KEY='diagrama-pro.restore-points.v1';type Point={id:string;name:string;cre
 export default function DataInspector({onClose}:{onClose:()=>void}){
  const doc=useDiagramStore(s=>({version:s.version,id:s.id,title:s.title,mode:s.mode,nodes:s.nodes,edges:s.edges,updatedAt:s.updatedAt}));const replace=useDiagramStore(s=>s.replace),undo=useDiagramStore(s=>s.undo),past=useDiagramStore(s=>s.past);
  const [json,setJson]=useState(()=>JSON.stringify(doc,null,2)),[message,setMessage]=useState(''),[points,setPoints]=useState<Point[]>(()=>{try{return JSON.parse(localStorage.getItem(KEY)||'[]') as Point[]}catch{return []}});
- const current=useMemo(()=>JSON.stringify(doc,null,2),[doc]);const size=new Blob([current]).size;
+ const current=useMemo(()=>JSON.stringify(doc,null,2),[doc]);useEffect(()=>{setJson(current);},[current]);const size=new Blob([current]).size;
  function apply(){try{const parsed=JSON.parse(json);const checked=diagramSchema.parse(parsed);replace(validateDocument(checked));setMessage('JSON aplicado com sucesso.');}catch(err){if(err instanceof SyntaxError)setMessage('JSON inválido: confira aspas, vírgulas e chaves.');else if(err&&typeof err==='object'&&'issues'in err){const issue=(err as {issues:{path:(string|number)[];message:string}[]}).issues[0];setMessage(`${issue.path.join('.')}: ${issue.message}`);}else setMessage(err instanceof Error?err.message:'Falha ao validar JSON.');}}
  function savePoint(){const name=window.prompt('Nome do ponto de restauração:','Antes de testar edição');if(!name?.trim())return;const next=[{id:crypto.randomUUID(),name:name.trim(),createdAt:new Date().toISOString(),document:doc},...points].slice(0,20);try{localStorage.setItem(KEY,JSON.stringify(next));setPoints(next);setMessage('Ponto de restauração salvo.');}catch{setMessage('Não foi possível salvar o ponto.');}}
  function restore(p:Point){if(!window.confirm(`Restaurar "${p.name}"? As alterações atuais serão substituídas.`))return;replace(p.document);setJson(JSON.stringify(p.document,null,2));setMessage('Ponto restaurado.');}
