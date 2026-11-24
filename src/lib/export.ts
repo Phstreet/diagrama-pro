@@ -1,11 +1,30 @@
 import { toPng, toSvg } from 'html-to-image';
-import { jsPDF } from 'jspdf';
 import type { DiagramDocument } from '../types/diagram';
-import { useDiagramStore } from '../store/diagramStore';
-import { APP_CONFIG } from '../app/config';
-function canvasElement() { const el = document.querySelector('.react-flow__viewport') as HTMLElement | null; if (!el) throw new Error('Canvas não encontrado.'); return el; }
-function download(url: string, filename: string) { const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); }
-export async function exportImage(format: 'png' | 'svg') { const el = canvasElement(); const opts = { backgroundColor: getComputedStyle(document.body).getPropertyValue('--canvas-bg') || '#ffffff', pixelRatio: 2 }; const url = format === 'png' ? await toPng(el, opts) : await toSvg(el, opts); download(url, `diagrama-pro.${format}`); }
-export async function exportPdf() { const el = canvasElement(); const data = await toPng(el, { pixelRatio: 2, backgroundColor: '#ffffff' }); const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' }); const w = pdf.internal.pageSize.getWidth(), h = pdf.internal.pageSize.getHeight(); pdf.addImage(data, 'PNG', 8, 8, w - 16, h - 16, undefined, 'FAST'); pdf.save('diagrama-pro.pdf'); }
-export function exportJson() { const s = useDiagramStore.getState(); const doc: DiagramDocument = { id: 'export', name: s.name, mode: s.mode, theme: s.theme, nodes: s.nodes, edges: s.edges, updatedAt: new Date().toISOString(), version: 1 }; const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); download(url, 'diagrama-pro.json'); URL.revokeObjectURL(url); }
-export async function importJson(file: File) { if (file.size > 5 * 1024 * 1024) throw new Error('O arquivo excede o limite de 5 MB.'); const doc = JSON.parse(await file.text()) as DiagramDocument; if (doc.version !== 1 || !['mindmap','flowchart'].includes(doc.mode) || !Array.isArray(doc.nodes) || !Array.isArray(doc.edges)) throw new Error('Arquivo JSON incompatível.'); if (doc.nodes.length > 2000 || doc.edges.length > 4000) throw new Error('O diagrama excede os limites do MVP.'); useDiagramStore.getState().load({ ...doc, theme: doc.theme === 'dark' ? 'dark' : 'light', name: String(doc.name || 'Diagrama importado') }); }
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+export function exportJson(document: DiagramDocument) {
+  downloadBlob(new Blob([JSON.stringify(document, null, 2)], { type: 'application/json' }), 'diagrama-pro.json');
+}
+
+export async function exportCanvas(format: 'png' | 'svg') {
+  const element = document.querySelector<HTMLElement>('.react-flow__viewport');
+  if (!element) throw new Error('Canvas não encontrado para exportação.');
+  const options = { backgroundColor: '#f8fafc', pixelRatio: 2, cacheBust: true };
+  if (format === 'png') {
+    const dataUrl = await toPng(element, options);
+    const response = await fetch(dataUrl);
+    downloadBlob(await response.blob(), 'diagrama-pro.png');
+  } else {
+    const dataUrl = await toSvg(element, options);
+    const response = await fetch(dataUrl);
+    downloadBlob(await response.blob(), 'diagrama-pro.svg');
+  }
+}
