@@ -1,127 +1,53 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowDownToLine, FileJson, GitBranch, LayoutDashboard, Plus, Redo2, Share2, Sparkles, Upload, Workflow } from 'lucide-react';
+import { ArrowDownToLine, FileJson, GitBranch, LayoutDashboard, Plus, Redo2, Share2, Sparkles, Upload, Workflow, Undo2, WandSparkles, FileDown } from 'lucide-react';
 import { useDiagramStore } from '../store/useDiagramStore';
 import { loadDocument, saveDocument } from '../lib/persistence';
 import { exportCanvas, exportJson } from '../lib/export';
+import { autoLayout } from '../lib/layout';
 import DiagramCanvas from '../components/DiagramCanvas';
-import type { DiagramDocument, DiagramMode, DiagramNode } from '../types/diagram';
+import type { DiagramDocument, DiagramMode, DiagramNode, NodeKind } from '../types/diagram';
 
-function makeNode(label: string, kind: 'topic' | 'process' | 'decision', index: number): DiagramNode {
+const palette: Record<string, string> = { violet: '#f0edff', blue: '#eaf2ff', green: '#e8f7ef', amber: '#fff3df', rose: '#ffedf0', slate: '#eef1f5' };
+function makeNode(label: string, kind: NodeKind, index: number): DiagramNode {
   const id = crypto.randomUUID();
-  return {
-    id,
-    type: 'default',
-    position: { x: 260 + (index % 3) * 70, y: 130 + index * 42 },
-    data: { label, kind, color: kind === 'decision' ? 'amber' : kind === 'process' ? 'blue' : 'violet' },
-    style: { borderRadius: kind === 'decision' ? 18 : 14 },
-  };
+  const color = kind === 'decision' ? 'amber' : kind === 'process' ? 'blue' : kind === 'person' ? 'green' : 'violet';
+  return { id, type: 'default', position: { x: 260 + (index % 3) * 70, y: 130 + index * 42 }, data: { label, kind, color }, style: { borderRadius: kind === 'decision' ? 18 : 12, background: palette[color], border: '1px solid #dedbea', padding: 14, minWidth: 150 } };
 }
-
+const templates: Record<string, { title: string; mode: DiagramMode; nodes: DiagramNode[]; edges: DiagramDocument['edges'] }> = {
+  project: { title: 'Plano de projeto', mode: 'flowchart', nodes: ['Início','Levantamento','Planejamento','Execução','Validação','Concluído'].map((label,i)=>({...makeNode(label,i===0?'start':i===5?'end':'process',i),position:{x:100+i*220,y:180}})), edges: [] },
+  org: { title: 'Organograma', mode: 'orgchart', nodes: ['Direção','Operações','Produto','Tecnologia'].map((label,i)=>({...makeNode(label,'person',i),position:{x:300+(i-1)*210,y:i===0?80:250}})), edges: [] },
+  decision: { title: 'Fluxo de decisão', mode: 'flowchart', nodes: ['Solicitação','Aprovação?','Aprovado','Revisar'].map((label,i)=>({...makeNode(label,i===1?'decision':'process',i),position:{x:100+i*210,y:180}})), edges: [] },
+};
 export default function App() {
-  const title = useDiagramStore((s) => s.title);
-  const mode = useDiagramStore((s) => s.mode);
-  const nodes = useDiagramStore((s) => s.nodes);
-  const edges = useDiagramStore((s) => s.edges);
-  const setTitle = useDiagramStore((s) => s.setTitle);
-  const setMode = useDiagramStore((s) => s.setMode);
-  const setNodes = useDiagramStore((s) => s.setNodes);
-  const setEdges = useDiagramStore((s) => s.setEdges);
-  const replace = useDiagramStore((s) => s.replace);
-  const [notice, setNotice] = useState('Todas as alterações são salvas automaticamente');
-  const fileInput = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const saved = loadDocument();
-    if (saved) replace(saved);
-  }, [replace]);
-
-  useEffect(() => {
-    const document: DiagramDocument = { version: 1, title, mode, nodes, edges, updatedAt: new Date().toISOString() };
-    const timeout = window.setTimeout(() => {
-      try { saveDocument(document); setNotice('Salvo neste dispositivo'); }
-      catch { setNotice('Não foi possível salvar'); }
-    }, 350);
-    return () => window.clearTimeout(timeout);
-  }, [title, mode, nodes, edges]);
-
-  const addNode = (kind: 'topic' | 'process' | 'decision') => {
-    const label = kind === 'decision' ? 'Nova decisão' : kind === 'process' ? 'Nova etapa' : 'Novo tópico';
-    setNodes([...nodes, makeNode(label, kind, nodes.length)]);
-  };
-
-  const changeMode = (next: DiagramMode) => {
-    setMode(next);
-    setNotice(next === 'mindmap' ? 'Modo mapa mental' : 'Modo fluxograma');
-  };
-
-  const importJson = async (file?: File) => {
-    if (!file) return;
-    try {
-      const parsed: unknown = JSON.parse(await file.text());
-      if (!parsed || typeof parsed !== 'object') throw new Error('Arquivo inválido.');
-      const candidate = parsed as Partial<DiagramDocument>;
-      if (candidate.version !== 1 || !Array.isArray(candidate.nodes) || !Array.isArray(candidate.edges)) {
-        throw new Error('O arquivo não contém um diagrama compatível.');
-      }
-      replace({
-        version: 1,
-        title: typeof candidate.title === 'string' ? candidate.title : 'Diagrama importado',
-        mode: candidate.mode === 'flowchart' ? 'flowchart' : 'mindmap',
-        nodes: candidate.nodes,
-        edges: candidate.edges,
-        updatedAt: new Date().toISOString(),
-      });
-      setNotice('Diagrama importado com sucesso');
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'Falha ao importar arquivo');
-    } finally {
-      if (fileInput.current) fileInput.current.value = '';
-    }
-  };
-
-  const runExport = async (format: 'png' | 'svg') => {
-    try { await exportCanvas(format); setNotice(`Arquivo ${format.toUpperCase()} exportado`); }
-    catch (error) { setNotice(error instanceof Error ? error.message : 'Falha na exportação'); }
-  };
-
-  return (
-    <main className="app">
-      <header className="topbar">
-        <div className="brand"><div className="brand-mark"><Share2 size={19} /></div><div><strong>diagrama<span>pro</span></strong><small>WORKSPACE</small></div></div>
-        <div className="document-title"><input aria-label="Nome do diagrama" value={title} onChange={(e) => setTitle(e.target.value)} /><span>{notice}</span></div>
-        <div className="top-actions">
-          <button className="button button-quiet" onClick={() => fileInput.current?.click()}><Upload size={16} /> Importar</button>
-          <button className="button button-quiet" onClick={() => exportJson({ version: 1, title, mode, nodes, edges, updatedAt: new Date().toISOString() })}><FileJson size={16} /> JSON</button>
-          <div className="export-menu"><button className="button button-primary" onClick={() => void runExport('png')}><ArrowDownToLine size={16} /> Exportar</button><button className="export-more" aria-label="Exportar SVG" onClick={() => void runExport('svg')}>SVG</button></div>
-          <input ref={fileInput} type="file" accept="application/json,.json" hidden onChange={(e) => void importJson(e.target.files?.[0])} />
-        </div>
-      </header>
-
-      <section className="workspace">
-        <aside className="sidebar">
-          <div className="sidebar-heading"><LayoutDashboard size={17} /><span>EDITOR</span></div>
-          <div className="mode-switch">
-            <button className={mode === 'mindmap' ? 'active' : ''} onClick={() => changeMode('mindmap')}><GitBranch size={16} /> Mapa mental</button>
-            <button className={mode === 'flowchart' ? 'active' : ''} onClick={() => changeMode('flowchart')}><Workflow size={16} /> Fluxograma</button>
-          </div>
-          <div className="side-section">
-            <label>ADICIONAR ELEMENTO</label>
-            <button className="add-item" onClick={() => addNode('topic')}><span className="element-dot dot-violet">T</span><span><b>Tópico</b><small>Ideia ou informação</small></span><Plus size={16} /></button>
-            <button className="add-item" onClick={() => addNode('process')}><span className="element-dot dot-blue">P</span><span><b>Etapa</b><small>Processo ou atividade</small></span><Plus size={16} /></button>
-            <button className="add-item" onClick={() => addNode('decision')}><span className="element-dot dot-amber">?</span><span><b>Decisão</b><small>Ponto de escolha</small></span><Plus size={16} /></button>
-          </div>
-          <div className="side-bottom">
-            <div className="tip-card"><Sparkles size={17} /><b>Dica rápida</b><p>Selecione um cartão para editá-lo. Arraste a partir dos conectores para criar relações.</p></div>
-            <div className="side-meta"><span className="online-dot" /> Armazenamento local ativo</div>
-          </div>
-        </aside>
-
-        <section className="editor-area">
-          <div className="canvas-toolbar"><div><span className="crumb">MEUS DIAGRAMAS</span><span className="crumb-sep">/</span><b>{mode === 'mindmap' ? 'Mapa mental' : 'Fluxograma'}</b></div><div className="canvas-tools"><span>{nodes.length} elementos</span><span className="tool-divider" /><button title="Limpar seleção" onClick={() => setNotice('Seleção liberada')}><Redo2 size={16} /></button></div></div>
-          <DiagramCanvas />
-          <footer className="statusbar"><span><i className="online-dot" /> {notice}</span><span>DIAGRAMA PRO · V2.0</span></footer>
-        </section>
-      </section>
-    </main>
-  );
+  const title=useDiagramStore(s=>s.title), mode=useDiagramStore(s=>s.mode), nodes=useDiagramStore(s=>s.nodes), edges=useDiagramStore(s=>s.edges);
+  const selectedId=useDiagramStore(s=>s.selectedNodeId), past=useDiagramStore(s=>s.past), future=useDiagramStore(s=>s.future);
+  const setTitle=useDiagramStore(s=>s.setTitle), setMode=useDiagramStore(s=>s.setMode), setNodes=useDiagramStore(s=>s.setNodes), setEdges=useDiagramStore(s=>s.setEdges);
+  const updateNode=useDiagramStore(s=>s.updateNode), replace=useDiagramStore(s=>s.replace), undo=useDiagramStore(s=>s.undo), redo=useDiagramStore(s=>s.redo);
+  const selected=nodes.find(n=>n.id===selectedId);
+  const [notice,setNotice]=useState('Todas as alterações são salvas automaticamente');
+  const fileInput=useRef<HTMLInputElement>(null);
+  useEffect(()=>{ const saved=loadDocument(); if(saved) replace(saved); },[replace]);
+  useEffect(()=>{ const doc:DiagramDocument={version:1,title,mode,nodes,edges,updatedAt:new Date().toISOString()}; const timeout=window.setTimeout(()=>{try{saveDocument(doc);setNotice('Salvo neste dispositivo')}catch{setNotice('Não foi possível salvar')}} ,350); return ()=>window.clearTimeout(timeout); },[title,mode,nodes,edges]);
+  useEffect(()=>{ const onKey=(event:KeyboardEvent)=>{if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='z'){event.preventDefault();event.shiftKey?redo():undo()}else if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='y'){event.preventDefault();redo()}}; window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey);},[undo,redo]);
+  const addNode=(kind:NodeKind)=>{const label=kind==='decision'?'Nova decisão':kind==='process'?'Nova etapa':kind==='person'?'Novo cargo':kind==='start'?'Início':kind==='end'?'Fim':'Novo tópico';const node=makeNode(label,kind,nodes.length);setNodes([...nodes,node]);};
+  const applyTemplate=(key:string)=>{const t=templates[key];setTitle(t.title);setMode(t.mode);setNodes(t.nodes);setEdges(t.edges);setNotice('Template aplicado');};
+  const importJson=async(file?:File)=>{if(!file)return;try{const parsed:unknown=JSON.parse(await file.text());if(!parsed||typeof parsed!=='object')throw new Error('Arquivo inválido.');const c=parsed as Partial<DiagramDocument>;if(c.version!==1||!Array.isArray(c.nodes)||!Array.isArray(c.edges))throw new Error('O arquivo não contém um diagrama compatível.');replace({version:1,title:typeof c.title==='string'?c.title:'Diagrama importado',mode:['flowchart','orgchart','sequence'].includes(String(c.mode))?c.mode as DiagramMode:'mindmap',nodes:c.nodes,edges:c.edges,updatedAt:new Date().toISOString()});setNotice('Diagrama importado');}catch(e){setNotice(e instanceof Error?e.message:'Falha ao importar')}finally{if(fileInput.current)fileInput.current.value='';}};
+  const runExport=async(format:'png'|'svg'|'pdf')=>{try{await exportCanvas(format);setNotice(`Arquivo ${format.toUpperCase()} exportado`)}catch(e){setNotice(e instanceof Error?e.message:'Falha na exportação')}};
+  const changeMode=(next:DiagramMode)=>{setMode(next);setNotice('Modo alterado');};
+  return <main className="app">
+    <header className="topbar"><div className="brand"><div className="brand-mark"><Share2 size={19}/></div><div><strong>diagrama<span>pro</span></strong><small>WORKSPACE</small></div></div>
+      <div className="document-title"><input aria-label="Nome do diagrama" value={title} onChange={e=>setTitle(e.target.value)}/><span>{notice}</span></div>
+      <div className="top-actions"><button className="button button-quiet" disabled={!past.length} onClick={undo} title="Desfazer (Ctrl+Z)"><Undo2 size={16}/> Desfazer</button><button className="button button-quiet" disabled={!future.length} onClick={redo} title="Refazer (Ctrl+Y)"><Redo2 size={16}/> Refazer</button><button className="button button-quiet" onClick={()=>fileInput.current?.click()}><Upload size={16}/> Importar</button><button className="button button-quiet" onClick={()=>exportJson({version:1,title,mode,nodes,edges,updatedAt:new Date().toISOString()})}><FileJson size={16}/> JSON</button><div className="export-menu"><button className="button button-primary" onClick={()=>void runExport('png')}><ArrowDownToLine size={16}/> PNG</button><button className="export-more" onClick={()=>void runExport('svg')}>SVG</button><button className="export-more" onClick={()=>void runExport('pdf')}><FileDown size={14}/> PDF</button></div><input ref={fileInput} type="file" accept="application/json,.json" hidden onChange={e=>void importJson(e.target.files?.[0])}/></div>
+    </header>
+    <section className="workspace"><aside className="sidebar"><div className="sidebar-heading"><LayoutDashboard size={17}/><span>EDITOR</span></div>
+      <div className="mode-switch">{([{id:'mindmap',label:'Mapa mental',icon:<GitBranch size={15}/>},{id:'flowchart',label:'Fluxograma',icon:<Workflow size={15}/>},{id:'orgchart',label:'Organograma',icon:<Share2 size={15}/>},{id:'sequence',label:'Sequencial',icon:<WandSparkles size={15}/>} ] as const).map(m=><button key={m.id} className={mode===m.id?'active':''} onClick={()=>changeMode(m.id)}>{m.icon}{m.label}</button>)}</div>
+      <div className="side-section"><label>ADICIONAR ELEMENTO</label>{([{kind:'topic',label:'Tópico',sub:'Ideia ou informação',symbol:'T'},{kind:'process',label:'Etapa',sub:'Processo ou atividade',symbol:'P'},{kind:'decision',label:'Decisão',sub:'Ponto de escolha',symbol:'?'},{kind:'person',label:'Cargo / pessoa',sub:'Organograma',symbol:'O'}] as const).map(item=><button className="add-item" key={item.kind} onClick={()=>addNode(item.kind)}><span className="element-dot dot-violet">{item.symbol}</span><span><b>{item.label}</b><small>{item.sub}</small></span><Plus size={16}/></button>)}</div>
+      <div className="side-section"><label>TEMPLATES</label><button className="template-button" onClick={()=>applyTemplate('project')}>Plano de projeto</button><button className="template-button" onClick={()=>applyTemplate('org')}>Organograma básico</button><button className="template-button" onClick={()=>applyTemplate('decision')}>Fluxo de decisão</button></div>
+      <div className="side-section"><label>ORGANIZAÇÃO</label><button className="template-button" onClick={()=>{setNodes(autoLayout(nodes,edges,'TB'));setNotice('Layout organizado')}}> <WandSparkles size={14}/> Organizar automaticamente</button><button className="template-button" onClick={()=>{setNodes(autoLayout(nodes,edges,'LR'));setNotice('Layout horizontal aplicado')}}> <WandSparkles size={14}/> Layout horizontal</button></div>
+      <div className="side-bottom"><div className="tip-card"><Sparkles size={17}/><b>Atalhos</b><p>Ctrl+Z desfaz · Ctrl+Y refaz. Selecione um elemento para editar suas propriedades.</p></div><div className="side-meta"><span className="online-dot"/> Armazenamento local ativo</div></div>
+    </aside>
+    <section className="editor-area"><div className="canvas-toolbar"><div><span className="crumb">MEUS DIAGRAMAS</span><span className="crumb-sep">/</span><b>{{mindmap:'Mapa mental',flowchart:'Fluxograma',orgchart:'Organograma',sequence:'Sequencial'}[mode]}</b></div><div className="canvas-tools"><span>{nodes.length} elementos</span><span className="tool-divider"/><button title="Organizar automaticamente" onClick={()=>setNodes(autoLayout(nodes,edges))}><WandSparkles size={16}/></button></div></div>
+      <div className="editor-split"><DiagramCanvas/>{selected&&<aside className="properties-panel"><div className="properties-heading"><b>Propriedades</b><button onClick={()=>useDiagramStore.getState().selectNode(null)} aria-label="Fechar painel">×</button></div><label>Texto</label><input value={String(selected.data.label??'')} onChange={e=>updateNode(selected.id,{label:e.target.value})}/><label>Descrição</label><textarea value={String(selected.data.description??'')} onChange={e=>updateNode(selected.id,{description:e.target.value})} placeholder="Descrição opcional"/><label>Tipo</label><select value={String(selected.data.kind??'topic')} onChange={e=>updateNode(selected.id,{kind:e.target.value as NodeKind})}><option value="topic">Tópico</option><option value="process">Etapa</option><option value="decision">Decisão</option><option value="person">Cargo / pessoa</option><option value="start">Início</option><option value="end">Fim</option></select><label>Cor</label><div className="color-options">{Object.keys(palette).map(color=><button key={color} className={selected.data.color===color?'chosen':''} style={{background:palette[color]}} aria-label={color} onClick={()=>updateNode(selected.id,{color})}/>)}</div><button className="delete-node" onClick={()=>{setNodes(nodes.filter(n=>n.id!==selected.id));setEdges(edges.filter(e=>e.source!==selected.id&&e.target!==selected.id));useDiagramStore.getState().selectNode(null)}}>Excluir elemento</button></aside>}</div>
+      <footer className="statusbar"><span><i className="online-dot"/> {notice}</span><span>DIAGRAMA PRO · V2.1</span></footer>
+    </section></section></main>;
 }

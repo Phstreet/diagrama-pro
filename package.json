@@ -1,7 +1,7 @@
 {
   "name": "diagrama-pro",
   "private": true,
-  "version": "2.0.0",
+  "version": "2.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
@@ -11,13 +11,16 @@
   },
   "dependencies": {
     "@xyflow/react": "^12.8.5",
+    "dagre": "^0.8.5",
     "html-to-image": "^1.11.13",
+    "jspdf": "^3.0.1",
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@types/dagre": "^0.7.52",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
     "@vitejs/plugin-react": "^4.3.4",
