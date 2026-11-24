@@ -1,47 +1,70 @@
 # Diagrama Pro
 
-MVP web para criação de mapas mentais e fluxogramas, com React 19, TypeScript, Vite, Tailwind CSS, React Flow, Zustand e dagre.
+Editor web para criação de mapas mentais e fluxogramas. O projeto utiliza React 19, TypeScript, Vite, React Flow, Zustand e dagre.
 
 ## Requisitos
-- Node.js 20.19+ ou 22.12+
-- npm 10+
 
-## Instalação do zero
+- Node.js 22.12 ou superior
+- npm 10 ou superior
+
+## Executar localmente
+
 ```bash
-# 1. Criar a pasta e entrar nela
-mkdir diagrama-pro && cd diagrama-pro
-
-# 2. Criar o projeto Vite (React + TypeScript)
-npm create vite@latest . -- --template react-ts
-
-# 3. Instalar dependências de execução
-npm install @xyflow/react zustand dagre html-to-image jspdf lucide-react
-
-# 4. Instalar dependências de desenvolvimento
-npm install -D tailwindcss postcss autoprefixer @types/dagre
-
-# 5. Inicializar Tailwind (os arquivos de configuração deste projeto já estão prontos)
-npx tailwindcss init -p
-
-# 6. Rodar
+git clone https://github.com/Phstreet/diagrama-pro.git
+cd diagrama-pro
+npm install
 npm run dev
 ```
 
-> Para usar este pacote pronto, extraia o ZIP e execute `npm install` e `npm run dev`. Não execute novamente `create vite` sobre os arquivos extraídos.
+O Vite exibirá o endereço local no terminal.
 
-## Build de produção
-```bash
-npm run build
-npm run preview
+## Scripts
+
+| Comando | Finalidade |
+| --- | --- |
+| `npm run dev` | Inicia o servidor de desenvolvimento |
+| `npm run typecheck` | Executa a verificação de tipos TypeScript |
+| `npm run build` | Verifica os tipos e gera a versão de produção |
+| `npm run preview` | Executa uma prévia da versão de produção |
+
+## Estrutura do projeto
+
+```text
+.
+├── public/                 # Arquivos estáticos
+├── src/
+│   ├── app/                # Composição da aplicação e configuração
+│   ├── components/
+│   │   ├── nodes/          # Tipos visuais dos nós
+│   │   └── ui/             # Telas e componentes de interface
+│   ├── hooks/              # Hooks reutilizáveis
+│   ├── lib/                # Layout, templates e exportação
+│   ├── store/              # Estado global e persistência local
+│   ├── types/              # Tipos compartilhados
+│   ├── index.css
+│   └── main.tsx
+├── index.html
+├── package.json
+└── vite.config.ts
 ```
 
-## Recursos incluídos
-- Dois modos: mapa mental e fluxograma.
-- Templates prontos, nó de tópico, etapa e decisão.
-- Conexões por arraste, edição do título por duplo clique e propriedades na lateral.
-- Arrastar nós, recolher/expandir ramificações, zoom, pan, ajuste inicial à tela e minimapa.
-- Organização automática com dagre.
-- Histórico, atalhos, autosave local, importação e exportação PNG/SVG/PDF/JSON.
-- Temas claro e escuro.
+## Recursos atuais
 
-O autosave utiliza localStorage no navegador atual. Os diagramas não são sincronizados entre dispositivos.
+- Modo de mapa mental e modo de fluxograma.
+- Templates iniciais para planejamento e aprovação.
+- Nós de tópico, etapa e decisão.
+- Conexões por arraste, edição de propriedades e recolher/expandir ramificações.
+- Zoom, navegação pelo canvas e minimapa.
+- Organização automática com dagre.
+- Histórico de desfazer/refazer e atalhos de teclado.
+- Salvamento automático no armazenamento local do navegador.
+- Importação e exportação JSON, PNG, SVG e PDF.
+- Tema claro e escuro.
+
+## Persistência e limitações
+
+Os diagramas são salvos no `localStorage` do navegador e, nesta versão, não são sincronizados entre dispositivos. Os campos de raia/responsável estão disponíveis nos nós do fluxograma; a visualização de raias como colunas ou faixas completas ainda é uma evolução planejada.
+
+## Validação
+
+Cada push para `main` e cada pull request executa a verificação TypeScript e o build de produção pelo GitHub Actions.
