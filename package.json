@@ -13,7 +13,8 @@
     "lint": "eslint .",
     "test:e2e": "playwright test",
     "pwa:icons": "node scripts/generate-icons.mjs",
-    "android:build": "npm run build && node scripts/android-build.mjs"
+    "android:build": "npm run build && node scripts/android-build.mjs",
+    "desktop:build": "npm run build && npx tauri icon resources/icon.png --output src-tauri/icons && tauri build"
   },
   "dependencies": {
     "@xyflow/react": "^12.8.5",
