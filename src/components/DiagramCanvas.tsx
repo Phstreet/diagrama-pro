@@ -7,7 +7,7 @@ import type { DiagramEdge, DiagramNode, NodeKind } from '../types/diagram';
 const icons:Record<NodeKind,typeof Square>={topic:GitBranch,process:Workflow,decision:GitBranch,start:CirclePlay,end:CircleStop,document:FileText,person:UserRound,lane:Square};
 function DiagramNodeView({data,selected}: {data:DiagramNode['data'];selected:boolean}) {
  const kind=data.kind||'process';const Icon=icons[kind];const isLane=kind==='lane';
- return <div className={`diagram-node shape-${data.shape|| (kind==='decision'?'diamond':'rounded')} kind-${kind}`} style={{background:data.color||'#fff',fontSize:data.fontSize||12,borderWidth:data.lineWidth||1,outline:selected?'2px solid #7669d5':undefined,minWidth:isLane?520:145,minHeight:isLane?260:undefined}} aria-label={data.label}>
+ return <div className={`diagram-node shape-${data.shape|| (kind==='decision'?'diamond':'rounded')} kind-${kind}`} style={{background:data.color||'#fff',fontSize:data.fontSize||12,borderWidth:data.lineWidth||1,outline:selected?'2px solid #7669d5':undefined,width:isLane?250:undefined,minWidth:isLane?250:145,minHeight:isLane?260:undefined}} aria-label={data.label}>
  {!isLane&&<><Handle type="target" position={Position.Left}/><span className="node-icon"><Icon size={15}/></span><span className="node-label">{data.label}</span><Handle type="source" position={Position.Right}/></>}
  {isLane&&<span className="lane-title">{data.label}</span>}
  </div>;

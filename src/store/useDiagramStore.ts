@@ -28,7 +28,7 @@ export const useDiagramStore=create<State>((set,get)=>({
  setTitle:title=>set({title,updatedAt:now()}),setMode:mode=>set({mode,updatedAt:now()}),
  setNodes:nodes=>set({nodes,updatedAt:now()}),setEdges:edges=>set({edges,updatedAt:now()}),
  checkpoint:()=>set(s=>({...history(s)})),
- updateNode:(id,patch)=>set(s=>({...history(s),nodes:s.nodes.map(n=>n.id===id?{...n,data:{...n.data,...patch}}:n),updatedAt:now()})),
+ updateNode:(id,patch)=>set(s=>({...history(s),nodes:s.nodes.map(n=>n.id===id?{...n,draggable:patch.locked===undefined?n.draggable:!patch.locked,data:{...n.data,...patch}}:n),updatedAt:now()})),
  updateEdge:(id,patch)=>set(s=>({...history(s),edges:s.edges.map(e=>e.id===id?{...e,...patch}:e),updatedAt:now()})),
  selectNode:selectedNodeId=>set({selectedNodeId,selectedEdgeId:null}),selectEdge:selectedEdgeId=>set({selectedEdgeId,selectedNodeId:null}),
  undo:()=>set(s=>{if(!s.past.length)return s;const prev=s.past[s.past.length-1];return {...prev,past:s.past.slice(0,-1),future:[snap(s),...s.future].slice(0,60),updatedAt:now()};}),
